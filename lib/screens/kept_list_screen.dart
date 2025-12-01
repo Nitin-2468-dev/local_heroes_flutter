@@ -223,10 +223,12 @@ class _KeptListScreenState extends State<KeptListScreen> {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: hero.imageUrl != null
+              child: hero.imageUrl != null && hero.imageUrl!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: hero.imageUrl!,
                       fit: BoxFit.cover,
+                      width: 48,
+                      height: 48,
                       placeholder: (context, url) => Center(
                         child: Text(
                           hero.initials,
