@@ -5,7 +5,9 @@ class LocalHero {
   final String field;
   final String bio;
   final String? imageUrl;
+  final String? profileImageUrl;
   final String? contactInfo;
+  final String? wikiLink;
   final DateTime? keptAt;
 
   const LocalHero({
@@ -14,7 +16,9 @@ class LocalHero {
     required this.field,
     required this.bio,
     this.imageUrl,
+    this.profileImageUrl,
     this.contactInfo,
+    this.wikiLink,
     this.keptAt,
   });
 
@@ -25,7 +29,9 @@ class LocalHero {
     String? field,
     String? bio,
     String? imageUrl,
+    String? profileImageUrl,
     String? contactInfo,
+    String? wikiLink,
     DateTime? keptAt,
   }) {
     return LocalHero(
@@ -34,7 +40,9 @@ class LocalHero {
       field: field ?? this.field,
       bio: bio ?? this.bio,
       imageUrl: imageUrl ?? this.imageUrl,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       contactInfo: contactInfo ?? this.contactInfo,
+      wikiLink: wikiLink ?? this.wikiLink,
       keptAt: keptAt ?? this.keptAt,
     );
   }
@@ -56,7 +64,9 @@ class LocalHero {
       'field': field,
       'bio': bio,
       'imageUrl': imageUrl,
+      'profileImageUrl': profileImageUrl,
       'contactInfo': contactInfo,
+      'wikiLink': wikiLink,
       'keptAt': keptAt?.toIso8601String(),
     };
   }
@@ -69,7 +79,9 @@ class LocalHero {
       field: map['field'] as String,
       bio: map['bio'] as String,
       imageUrl: map['imageUrl'] as String?,
+      profileImageUrl: map['profileImageUrl'] as String?,
       contactInfo: map['contactInfo'] as String?,
+      wikiLink: map['wikiLink'] as String?,
       keptAt: map['keptAt'] != null ? DateTime.parse(map['keptAt']) : null,
     );
   }

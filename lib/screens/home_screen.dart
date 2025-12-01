@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
+import '../models/hero_model.dart';
 import '../providers/heroes_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/hero_card.dart';
@@ -209,24 +210,23 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Cards - render from bottom to top
-                for (int i = 0; i < visibleCards.length; i++)
+                // Cards - render in REVERSE order so the current card (index 0) is on top
+                // visibleCards[0] = current card (active, on top)
+                // visibleCards[1] = next card (behind, not active)
+                for (int i = visibleCards.length - 1; i >= 0; i--)
                   Positioned.fill(
                     child: Center(
-                      child: Transform.scale(
-                        scale: i == visibleCards.length - 1 ? 1.0 : 0.95,
-                        child: HeroCard(
-                          key: ValueKey(visibleCards[i].id),
-                          hero: visibleCards[i],
-                          isActive: i == visibleCards.length - 1,
-                          onSwipe: (isKeep) {
-                            provider.onSwipe(
-                              isKeep
-                                  ? SwipeDirection.right
-                                  : SwipeDirection.left,
-                            );
-                          },
-                        ),
+                      child: _AnimatedCard(
+                        key: ValueKey('hero_card_${visibleCards[i].id}'),
+                        hero: visibleCards[i],
+                        isActive: i == 0, // First card (current) is active
+                        onSwipe: (isKeep) {
+                          provider.onSwipe(
+                            isKeep
+                                ? SwipeDirection.right
+                                : SwipeDirection.left,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -484,6 +484,103 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const KeptListScreen(),
+      ),
+    );
+  }
+}
+
+/// Animated wrapper for hero cards with smooth scale and opacity transitions.
+class _AnimatedCard extends StatefulWidget {
+  final LocalHero hero;
+  final bool isActive;
+  final Function(bool) onSwipe;
+
+  const _AnimatedCard({
+    super.key,
+    required this.hero,
+    required this.isActive,
+    required this.onSwipe,
+  });
+
+  @override
+  State<_AnimatedCard> createState() => _AnimatedCardState();
+}
+
+class _AnimatedCardState extends State<_AnimatedCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _updateAnimations();
+
+    // If starting as active, animate to active state
+    if (widget.isActive) {
+      _controller.value = 1.0;
+    }
+  }
+
+  void _updateAnimations() {
+    _scaleAnimation = Tween<double>(
+      begin: 0.92,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Animate when becoming active
+    if (widget.isActive && !oldWidget.isActive) {
+      _controller.forward();
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Opacity(
+            opacity: _opacityAnimation.value,
+            child: child,
+          ),
+        );
+      },
+      child: HeroCard(
+        hero: widget.hero,
+        isActive: widget.isActive,
+        onSwipe: widget.onSwipe,
       ),
     );
   }

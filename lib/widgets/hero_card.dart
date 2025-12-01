@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
 import '../utils/constants.dart';
+import '../services/wikipedia_service.dart';
 import 'swipe_indicator.dart';
 
 /// A swipeable hero card widget.
@@ -24,11 +25,16 @@ class HeroCard extends StatefulWidget {
 }
 
 class _HeroCardState extends State<HeroCard>
-    with TickerProviderStateMixin  {
+    with TickerProviderStateMixin {
   Offset _dragOffset = Offset.zero;
   late AnimationController _animationController;
   late Animation<Offset> _returnAnimation;
   AnimationController? _swipeOutController;
+  bool _isAnimatingOut = false;
+  
+  // Wikipedia image
+  String? _wikiImageUrl;
+  bool _isLoadingImage = false;
 
   @override
   void initState() {
@@ -52,6 +58,57 @@ class _HeroCardState extends State<HeroCard>
         });
       }
     });
+    
+    // Fetch Wikipedia image
+    _fetchWikiImage();
+  }
+  
+  Future<void> _fetchWikiImage() async {
+    if (widget.hero.wikiLink == null || widget.hero.wikiLink!.isEmpty) return;
+    if (_wikiImageUrl != null) return; // Already fetched
+    
+    setState(() => _isLoadingImage = true);
+    
+    try {
+      final imageUrl = await WikipediaService.fetchImageUrl(widget.hero.wikiLink!);
+      if (mounted && imageUrl != null) {
+        setState(() {
+          _wikiImageUrl = imageUrl;
+          _isLoadingImage = false;
+        });
+      } else if (mounted) {
+        setState(() => _isLoadingImage = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingImage = false);
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(HeroCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset drag state when hero changes (new card)
+    if (widget.hero.id != oldWidget.hero.id) {
+      _resetState();
+      _wikiImageUrl = null;
+      _fetchWikiImage();
+    }
+    // Reset when becoming inactive
+    if (!widget.isActive && oldWidget.isActive) {
+      _resetState();
+    }
+  }
+
+  void _resetState() {
+    _dragOffset = Offset.zero;
+    _isAnimatingOut = false;
+    _swipeOutController?.stop();
+    _swipeOutController?.dispose();
+    _swipeOutController = null;
+    _animationController.stop();
+    _animationController.reset();
   }
 
   @override
@@ -91,6 +148,9 @@ class _HeroCardState extends State<HeroCard>
   }
 
   void _animateOut(bool isKeep) {
+    if (_isAnimatingOut) return; // Prevent double swipe
+    _isAnimatingOut = true;
+
     final screenWidth = MediaQuery.of(context).size.width;
     final targetX = isKeep ? screenWidth * 1.5 : -screenWidth * 1.5;
 
@@ -111,16 +171,16 @@ class _HeroCardState extends State<HeroCard>
     ));
 
     _swipeOutController!.addListener(() {
-      setState(() {
-        _dragOffset = animation.value;
-      });
+      if (mounted) {
+        setState(() {
+          _dragOffset = animation.value;
+        });
+      }
     });
 
     _swipeOutController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
+      if (status == AnimationStatus.completed && mounted) {
         widget.onSwipe(isKeep);
-        _swipeOutController?.dispose();
-        _swipeOutController = null;
       }
     });
 
@@ -278,13 +338,25 @@ class _HeroCardState extends State<HeroCard>
   }
 
   Widget _buildImageSection() {
+    // Use Wikipedia fetched image, or fallback to widget.hero.imageUrl
+    final displayImageUrl = _wikiImageUrl ?? widget.hero.imageUrl;
+    
     return Stack(
       fit: StackFit.expand,
       children: [
         // Image or placeholder
-        if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty)
+        if (_isLoadingImage)
+          Container(
+            color: Colors.grey[300],
+            child: const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+              ),
+            ),
+          )
+        else if (displayImageUrl != null && displayImageUrl.isNotEmpty)
           CachedNetworkImage(
-            imageUrl: widget.hero.imageUrl!,
+            imageUrl: displayImageUrl,
             fit: BoxFit.cover,
             placeholder: (context, url) => Container(
               color: Colors.grey[300],
@@ -407,9 +479,11 @@ class _HeroCardState extends State<HeroCard>
   }
 
   Widget _buildAvatarImage() {
-    if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty) {
+    // Use profileImageUrl if available, otherwise fall back to Wikipedia image or imageUrl
+    final avatarUrl = widget.hero.profileImageUrl ?? _wikiImageUrl ?? widget.hero.imageUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: widget.hero.imageUrl!,
+        imageUrl: avatarUrl,
         fit: BoxFit.cover,
         placeholder: (context, url) => _buildAvatarPlaceholder(),
         errorWidget: (context, url, error) => _buildAvatarPlaceholder(),

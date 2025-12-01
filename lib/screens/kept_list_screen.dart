@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
 import '../providers/heroes_provider.dart';
+import '../services/wikipedia_service.dart';
 import '../utils/constants.dart';
 import '../utils/csv_export.dart';
 import '../widgets/custom_button.dart';
@@ -211,56 +212,8 @@ class _KeptListScreenState extends State<KeptListScreen> {
         ),
         child: Row(
           children: [
-            // Avatar
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: hero.imageUrl != null && hero.imageUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: hero.imageUrl!,
-                      fit: BoxFit.cover,
-                      width: 48,
-                      height: 48,
-                      placeholder: (context, url) => Center(
-                        child: Text(
-                          hero.initials,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Center(
-                        child: Text(
-                          hero.initials,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Text(
-                        hero.initials,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-            ),
+            // Avatar with Wikipedia image support
+            _WikipediaAvatarWidget(hero: hero),
             const SizedBox(width: 12),
 
             // Info
@@ -416,6 +369,106 @@ class _KeptListScreenState extends State<KeptListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Widget that fetches and displays Wikipedia image for a hero
+class _WikipediaAvatarWidget extends StatefulWidget {
+  final LocalHero hero;
+
+  const _WikipediaAvatarWidget({required this.hero});
+
+  @override
+  State<_WikipediaAvatarWidget> createState() => _WikipediaAvatarWidgetState();
+}
+
+class _WikipediaAvatarWidgetState extends State<_WikipediaAvatarWidget> {
+  String? _imageUrl;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    // First check if there's a cached image
+    if (widget.hero.wikiLink != null) {
+      final cached = WikipediaService.getCachedImageUrl(widget.hero.wikiLink!);
+      if (cached != null) {
+        if (mounted) {
+          setState(() {
+            _imageUrl = cached;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      // Fetch from Wikipedia
+      final imageUrl = await WikipediaService.fetchImageUrl(widget.hero.wikiLink!);
+      if (mounted) {
+        setState(() {
+          _imageUrl = imageUrl;
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _isLoading
+          ? const Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            )
+          : _imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: _imageUrl!,
+                  fit: BoxFit.cover,
+                  width: 48,
+                  height: 48,
+                  placeholder: (context, url) => _buildInitials(),
+                  errorWidget: (context, url, error) => _buildInitials(),
+                )
+              : _buildInitials(),
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        widget.hero.initials,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }

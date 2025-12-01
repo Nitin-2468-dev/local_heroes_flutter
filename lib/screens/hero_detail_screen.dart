@@ -1,16 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
+import '../services/wikipedia_service.dart';
 import '../utils/constants.dart';
 
 /// Detail screen showing full hero profile.
-class HeroDetailScreen extends StatelessWidget {
+class HeroDetailScreen extends StatefulWidget {
   final LocalHero hero;
 
   const HeroDetailScreen({
     super.key,
     required this.hero,
   });
+
+  @override
+  State<HeroDetailScreen> createState() => _HeroDetailScreenState();
+}
+
+class _HeroDetailScreenState extends State<HeroDetailScreen> {
+  String? _wikiImageUrl;
+  bool _isLoadingImage = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWikiImage();
+  }
+
+  Future<void> _loadWikiImage() async {
+    if (widget.hero.wikiLink != null) {
+      // Check cache first
+      final cached = WikipediaService.getCachedImageUrl(widget.hero.wikiLink!);
+      if (cached != null) {
+        if (mounted) {
+          setState(() {
+            _wikiImageUrl = cached;
+            _isLoadingImage = false;
+          });
+        }
+        return;
+      }
+      
+      final imageUrl = await WikipediaService.fetchImageUrl(widget.hero.wikiLink!);
+      if (mounted) {
+        setState(() {
+          _wikiImageUrl = imageUrl;
+          _isLoadingImage = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isLoadingImage = false);
+      }
+    }
+  }
+
+  String? get _displayImageUrl => _wikiImageUrl ?? widget.hero.imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -42,14 +87,21 @@ class HeroDetailScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // Hero image
-                  hero.imageUrl != null && hero.imageUrl!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: hero.imageUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => _buildPlaceholder(),
-                          errorWidget: (context, url, error) => _buildPlaceholder(),
+                  _isLoadingImage
+                      ? Container(
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                         )
-                      : _buildPlaceholder(),
+                      : _displayImageUrl != null && _displayImageUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: _displayImageUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => _buildPlaceholder(),
+                              errorWidget: (context, url, error) => _buildPlaceholder(),
+                            )
+                          : _buildPlaceholder(),
                   // Gradient overlay
                   Container(
                     decoration: BoxDecoration(
@@ -72,7 +124,7 @@ class HeroDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hero.name,
+                          widget.hero.name,
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -90,7 +142,7 @@ class HeroDetailScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
-                            hero.field.toUpperCase(),
+                            widget.hero.field.toUpperCase(),
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -118,7 +170,7 @@ class HeroDetailScreen extends StatelessWidget {
                   _buildSection(
                     title: 'About',
                     child: Text(
-                      hero.bio,
+                      widget.hero.bio,
                       style: const TextStyle(
                         fontSize: 16,
                         color: AppColors.textSecondary,
@@ -129,7 +181,7 @@ class HeroDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Contact info if available
-                  if (hero.contactInfo != null) ...[
+                  if (widget.hero.contactInfo != null) ...[
                     _buildSection(
                       title: 'Contact',
                       child: Container(
@@ -158,7 +210,7 @@ class HeroDetailScreen extends StatelessWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                hero.contactInfo!,
+                                widget.hero.contactInfo!,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textPrimary,
@@ -215,10 +267,10 @@ class HeroDetailScreen extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Saved timestamp if available
-                  if (hero.keptAt != null)
+                  if (widget.hero.keptAt != null)
                     Center(
                       child: Text(
-                        'Saved on ${_formatDate(hero.keptAt!)}',
+                        'Saved on ${_formatDate(widget.hero.keptAt!)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textMuted,
@@ -248,7 +300,7 @@ class HeroDetailScreen extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          hero.initials,
+          widget.hero.initials,
           style: const TextStyle(
             fontSize: 80,
             fontWeight: FontWeight.bold,
