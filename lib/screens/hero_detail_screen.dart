@@ -42,7 +42,7 @@ class HeroDetailScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // Hero image
-                  hero.imageUrl != null
+                  hero.imageUrl != null && hero.imageUrl!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: hero.imageUrl!,
                           fit: BoxFit.cover,
