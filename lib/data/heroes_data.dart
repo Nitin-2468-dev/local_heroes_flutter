@@ -352,7 +352,7 @@ final List<LocalHero> initialHeroes = [
     name: 'R.K. Narayan',
     field: 'Literature',
     bio: 'One of the greatest Indian writers in English, known for his Malgudi series that painted a vivid picture of small-town India.',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/en/2/2b/RKNarayan.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/38/R._K._Narayan_2009_stamp_of_India.jpg',
     contactInfo: 'Author',
   ),
   const LocalHero(
