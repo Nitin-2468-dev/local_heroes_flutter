@@ -4,7 +4,6 @@ import 'package:confetti/confetti.dart';
 import '../providers/heroes_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/hero_card.dart';
-import '../widgets/swipe_indicator.dart';
 import '../widgets/custom_button.dart';
 import 'kept_list_screen.dart';
 
@@ -127,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  Text(
+                  const Text(
                     AppStrings.keep,
                     style: TextStyle(
                       fontSize: 14,
@@ -147,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Text(
                       '${provider.keptList.length}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppColors.keepGreen,
@@ -168,7 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -178,10 +176,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.person_outline,
-        size: 24,
-        color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      child: Image.asset(
+        'assets/images/logo.jpg',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              size: 24,
+              color: Colors.white,
+            ),
+          );
+        },
       ),
     );
   }
@@ -201,19 +211,22 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // Cards - render from bottom to top
                 for (int i = 0; i < visibleCards.length; i++)
-                  Positioned(
-                    child: Transform.scale(
-                      scale: i == visibleCards.length - 1 ? 1.0 : 0.95,
-                      child: HeroCard(
-                        hero: visibleCards[i],
-                        isActive: i == visibleCards.length - 1,
-                        onSwipe: (isKeep) {
-                          provider.onSwipe(
-                            isKeep
-                                ? SwipeDirection.right
-                                : SwipeDirection.left,
-                          );
-                        },
+                  Positioned.fill(
+                    child: Center(
+                      child: Transform.scale(
+                        scale: i == visibleCards.length - 1 ? 1.0 : 0.95,
+                        child: HeroCard(
+                          key: ValueKey(visibleCards[i].id),
+                          hero: visibleCards[i],
+                          isActive: i == visibleCards.length - 1,
+                          onSwipe: (isKeep) {
+                            provider.onSwipe(
+                              isKeep
+                                  ? SwipeDirection.right
+                                  : SwipeDirection.left,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -222,47 +235,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
-        // Swipe hints and undo button
+        // Action buttons: Pass - Undo - Keep
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.paddingXL,
+            horizontal: AppDimensions.paddingLG,
             vertical: AppDimensions.paddingMD,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              const SwipeHints(),
-              
-              // Undo button in center
-              Expanded(
-                child: Center(
-                  child: GestureDetector(
-                    onTap: provider.canUndo ? provider.undo : null,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: provider.canUndo
-                            ? AppColors.surfaceDark
-                            : AppColors.surfaceDark.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.undo,
-                        size: 20,
-                        color: provider.canUndo
-                            ? AppColors.textPrimary
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ),
-                ),
+              // Pass button (left)
+              _buildActionButton(
+                icon: Icons.close,
+                color: AppColors.passRed,
+                label: AppStrings.pass,
+                onTap: provider.isFinished
+                    ? null
+                    : () => provider.onSwipe(SwipeDirection.left),
+                size: 56,
+              ),
+
+              // Undo button (center)
+              _buildActionButton(
+                icon: Icons.undo,
+                color: AppColors.textSecondary,
+                label: 'Undo',
+                onTap: provider.canUndo ? provider.undo : null,
+                size: 48,
+                isUndo: true,
+              ),
+
+              // Keep button (right)
+              _buildActionButton(
+                icon: Icons.check,
+                color: AppColors.keepGreen,
+                label: AppStrings.keep,
+                onTap: provider.isFinished
+                    ? null
+                    : () => provider.onSwipe(SwipeDirection.right),
+                size: 56,
               ),
             ],
           ),
@@ -290,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.layers_outlined,
               size: 64,
               color: AppColors.textMuted,
@@ -311,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 '{count}',
                 '${provider.keptList.length}',
               ),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
               ),
@@ -370,22 +381,101 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24, color: AppColors.textMuted),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textMuted,
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: AppColors.primary.withValues(alpha: 0.2),
+        highlightColor: AppColors.primary.withValues(alpha: 0.1),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 24, color: AppColors.textMuted),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback? onTap,
+    required double size,
+    bool isUndo = false,
+  }) {
+    final isEnabled = onTap != null;
+    final buttonColor = isEnabled ? color : color.withValues(alpha: 0.3);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(size / 2),
+        splashColor: color.withValues(alpha: 0.3),
+        highlightColor: color.withValues(alpha: 0.1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: isUndo
+                    ? (isEnabled
+                        ? AppColors.surfaceDark
+                        : AppColors.surfaceDark.withValues(alpha: 0.5))
+                    : Colors.transparent,
+                shape: BoxShape.circle,
+                border: isUndo
+                    ? null
+                    : Border.all(
+                        color: buttonColor,
+                        width: 3,
+                      ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isEnabled
+                        ? color.withValues(alpha: 0.3)
+                        : Colors.transparent,
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: isUndo
+                    ? (isEnabled ? AppColors.textPrimary : AppColors.textMuted)
+                    : buttonColor,
+                size: size * 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isEnabled ? buttonColor : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

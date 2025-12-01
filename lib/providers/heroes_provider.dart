@@ -93,6 +93,11 @@ class HeroesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Call this when swiped (public method for callbacks)
+  void handleSwipe(bool isKeep) {
+    onSwipe(isKeep ? SwipeDirection.right : SwipeDirection.left);
+  }
+
   /// Undo the last swipe.
   void undo() {
     if (_history.isEmpty) return;

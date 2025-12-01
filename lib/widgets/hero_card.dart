@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
 import '../utils/constants.dart';
 import 'swipe_indicator.dart';
@@ -23,11 +24,11 @@ class HeroCard extends StatefulWidget {
 }
 
 class _HeroCardState extends State<HeroCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin  {
   Offset _dragOffset = Offset.zero;
-  bool _isDragging = false;
   late AnimationController _animationController;
   late Animation<Offset> _returnAnimation;
+  AnimationController? _swipeOutController;
 
   @override
   void initState() {
@@ -55,15 +56,13 @@ class _HeroCardState extends State<HeroCard>
 
   @override
   void dispose() {
+    _swipeOutController?.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   void _onPanStart(DragStartDetails details) {
-    if (!widget.isActive) return;
-    setState(() {
-      _isDragging = true;
-    });
+    // Allow pan detection on all cards
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
@@ -89,17 +88,16 @@ class _HeroCardState extends State<HeroCard>
       // Return to center
       _returnToCenter();
     }
-
-    setState(() {
-      _isDragging = false;
-    });
   }
 
   void _animateOut(bool isKeep) {
     final screenWidth = MediaQuery.of(context).size.width;
     final targetX = isKeep ? screenWidth * 1.5 : -screenWidth * 1.5;
 
-    final controller = AnimationController(
+    // Dispose previous swipe out controller if any
+    _swipeOutController?.dispose();
+    
+    _swipeOutController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
@@ -108,24 +106,25 @@ class _HeroCardState extends State<HeroCard>
       begin: _dragOffset,
       end: Offset(targetX, _dragOffset.dy),
     ).animate(CurvedAnimation(
-      parent: controller,
+      parent: _swipeOutController!,
       curve: Curves.easeOut,
     ));
 
-    controller.addListener(() {
+    _swipeOutController!.addListener(() {
       setState(() {
         _dragOffset = animation.value;
       });
     });
 
-    controller.addStatusListener((status) {
+    _swipeOutController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         widget.onSwipe(isKeep);
-        controller.dispose();
+        _swipeOutController?.dispose();
+        _swipeOutController = null;
       }
     });
 
-    controller.forward();
+    _swipeOutController!.forward();
   }
 
   void _returnToCenter() {
@@ -162,6 +161,11 @@ class _HeroCardState extends State<HeroCard>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final cardHeight = (screenHeight * 0.65).clamp(500.0, 700.0).toDouble();
+    final maxWidth = MediaQuery.of(context).size.width - 32; // 16 padding on each side
+    final cardWidth = maxWidth.clamp(0.0, AppDimensions.cardMaxWidth);
+
     return GestureDetector(
       onPanStart: _onPanStart,
       onPanUpdate: _onPanUpdate,
@@ -171,44 +175,50 @@ class _HeroCardState extends State<HeroCard>
         offset: widget.isActive ? _dragOffset : Offset.zero,
         child: Transform.rotate(
           angle: widget.isActive ? _rotationAngle : 0,
-          child: Container(
-            width: AppDimensions.cardMaxWidth,
-            height: MediaQuery.of(context).size.height * 0.65,
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            width: cardWidth,
+            height: cardHeight,
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // Main card content
-                Column(
-                  children: [
-                    // Image section (55%)
-                    Expanded(
-                      flex: 55,
-                      child: _buildImageSection(),
-                    ),
-                    // Content section (45%)
-                    Expanded(
-                      flex: 45,
-                      child: _buildContentSection(),
-                    ),
-                  ],
+                // Main card content with rounded corners
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 20,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      // Image section (55%)
+                      Expanded(
+                        flex: 55,
+                        child: _buildImageSection(),
+                      ),
+                      // Content section (45%)
+                      Expanded(
+                        flex: 45,
+                        child: _buildContentSection(),
+                      ),
+                    ],
+                  ),
                 ),
 
                 // Color overlay on swipe
                 if (widget.isActive)
                   Positioned.fill(
-                    child: Container(
-                      color: _overlayColor,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusXL),
+                      child: Container(
+                        color: _overlayColor,
+                      ),
                     ),
                   ),
 
@@ -233,6 +243,32 @@ class _HeroCardState extends State<HeroCard>
                       opacity: _passIndicatorOpacity,
                     ),
                   ),
+
+                // Profile avatar - positioned in front of everything
+                Positioned(
+                  top: cardHeight * 0.55 - 40, // 55% is image section, avatar at bottom
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildAvatarImage(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -246,13 +282,22 @@ class _HeroCardState extends State<HeroCard>
       fit: StackFit.expand,
       children: [
         // Image or placeholder
-        widget.hero.imageUrl != null
-            ? Image.network(
-                widget.hero.imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(),
-              )
-            : _buildPlaceholder(),
+        if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty)
+          CachedNetworkImage(
+            imageUrl: widget.hero.imageUrl!,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[300],
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) => _buildPlaceholder(),
+          )
+        else
+          _buildPlaceholder(),
         // Gradient overlay
         Container(
           decoration: BoxDecoration(
@@ -261,7 +306,7 @@ class _HeroCardState extends State<HeroCard>
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                Colors.black.withValues(alpha: 0.3),
+                Colors.black.withValues(alpha: 0.5),
               ],
             ),
           ),
@@ -297,7 +342,6 @@ class _HeroCardState extends State<HeroCard>
 
   Widget _buildContentSection() {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.only(
@@ -305,108 +349,84 @@ class _HeroCardState extends State<HeroCard>
           topRight: Radius.circular(AppDimensions.radiusXL),
         ),
       ),
-      child: Column(
-        children: [
-          // Avatar circle
-          Transform.translate(
-            offset: const Offset(0, -56),
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                  ),
-                ],
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Name
+              Text(
+                widget.hero.name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+                textAlign: TextAlign.center,
               ),
-              clipBehavior: Clip.antiAlias,
-              child: widget.hero.imageUrl != null
-                  ? Image.network(
-                      widget.hero.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Text(
-                          widget.hero.initials,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Text(
-                        widget.hero.initials,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ),
-            ),
-          ),
+              const SizedBox(height: 8),
 
-          // Name
-          Transform.translate(
-            offset: const Offset(0, -40),
-            child: Column(
-              children: [
-                Text(
-                  widget.hero.name,
+              // Field badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  widget.hero.field.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                    letterSpacing: 0.5,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+              ),
+              const SizedBox(height: 16),
 
-                // Field badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    widget.hero.field.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF475569), // slate-600
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+              // Bio - full text, no truncation
+              Text(
+                widget.hero.bio,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
                 ),
-                const SizedBox(height: 16),
-
-                // Bio
-                Text(
-                  widget.hero.bio,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarImage() {
+    if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: widget.hero.imageUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => _buildAvatarPlaceholder(),
+        errorWidget: (context, url, error) => _buildAvatarPlaceholder(),
+      );
+    }
+    return _buildAvatarPlaceholder();
+  }
+
+  Widget _buildAvatarPlaceholder() {
+    return Center(
+      child: Text(
+        widget.hero.initials,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[500],
+        ),
       ),
     );
   }

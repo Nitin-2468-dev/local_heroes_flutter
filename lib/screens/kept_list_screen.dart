@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
 import '../providers/heroes_provider.dart';
 import '../utils/constants.dart';
@@ -98,7 +99,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
             color: AppColors.textPrimary,
             fontSize: 14,
           ),
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: 'Search by name or field...',
             hintStyle: TextStyle(color: AppColors.textMuted),
             prefixIcon: Icon(
@@ -107,7 +108,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
               size: 20,
             ),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
+            contentPadding: EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
@@ -125,7 +126,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surfaceDark,
               shape: BoxShape.circle,
             ),
@@ -136,7 +137,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             AppStrings.noHeroesKept,
             style: TextStyle(
               fontSize: 18,
@@ -145,8 +146,8 @@ class _KeptListScreenState extends State<KeptListScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               AppStrings.swipeRightToKeep,
               style: TextStyle(
@@ -165,7 +166,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
     return Center(
       child: Text(
         'No matches found for "$_searchQuery"',
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 16,
           color: AppColors.textMuted,
         ),
@@ -223,13 +224,23 @@ class _KeptListScreenState extends State<KeptListScreen> {
               ),
               clipBehavior: Clip.antiAlias,
               child: hero.imageUrl != null
-                  ? Image.network(
-                      hero.imageUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: hero.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Center(
+                      placeholder: (context, url) => Center(
                         child: Text(
                           hero.initials,
-                          style: TextStyle(
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Center(
+                        child: Text(
+                          hero.initials,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textSecondary,
@@ -240,7 +251,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
                   : Center(
                       child: Text(
                         hero.initials,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textSecondary,
@@ -267,7 +278,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
                   const SizedBox(height: 2),
                   Text(
                     hero.field,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
@@ -344,7 +355,7 @@ class _KeptListScreenState extends State<KeptListScreen> {
   Widget _buildFooter(BuildContext context, HeroesProvider provider) {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.paddingMD),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceDark,
         border: Border(
           top: BorderSide(color: AppColors.border),

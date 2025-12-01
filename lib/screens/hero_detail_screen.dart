@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/hero_model.dart';
 import '../utils/constants.dart';
 
@@ -42,10 +43,11 @@ class HeroDetailScreen extends StatelessWidget {
                 children: [
                   // Hero image
                   hero.imageUrl != null
-                      ? Image.network(
-                          hero.imageUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: hero.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                          placeholder: (context, url) => _buildPlaceholder(),
+                          errorWidget: (context, url, error) => _buildPlaceholder(),
                         )
                       : _buildPlaceholder(),
                   // Gradient overlay
@@ -117,7 +119,7 @@ class HeroDetailScreen extends StatelessWidget {
                     title: 'About',
                     child: Text(
                       hero.bio,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         color: AppColors.textSecondary,
                         height: 1.6,
@@ -147,7 +149,7 @@ class HeroDetailScreen extends StatelessWidget {
                                 color: AppColors.primary.withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.location_on_outlined,
                                 color: AppColors.primary,
                                 size: 20,
@@ -157,7 +159,7 @@ class HeroDetailScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 hero.contactInfo!,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textPrimary,
                                 ),
@@ -188,14 +190,14 @@ class HeroDetailScreen extends StatelessWidget {
                           color: AppColors.keepGreen.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
                           Icon(
                             Icons.favorite,
                             color: AppColors.keepGreen,
                             size: 24,
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'This local hero is making a real difference in their community through dedication and selfless service.',
@@ -217,7 +219,7 @@ class HeroDetailScreen extends StatelessWidget {
                     Center(
                       child: Text(
                         'Saved on ${_formatDate(hero.keptAt!)}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textMuted,
                         ),

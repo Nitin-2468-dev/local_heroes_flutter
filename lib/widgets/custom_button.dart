@@ -59,12 +59,17 @@ class CustomButton extends StatelessWidget {
         children: [
           icon!,
           const SizedBox(width: 8),
-          Text(text),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       );
     }
 
-    return Text(text);
+    return Text(text, overflow: TextOverflow.ellipsis);
   }
 
   ButtonStyle _getButtonStyle() {

@@ -153,52 +153,36 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildLogo() {
-    return Stack(
-      children: [
-        Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          child: const Icon(
-            Icons.person_outline,
-            size: 48,
-            color: Colors.white,
-          ),
-        ),
-        // Card stack effect
-        Positioned(
-          bottom: -8,
-          right: -8,
-          child: Transform.rotate(
-            angle: 0.2,
-            child: Container(
-              width: 24,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.primary, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.asset(
+        'assets/images/logo.jpg',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
             ),
-          ),
-        ),
-      ],
+            child: const Icon(
+              Icons.person_outline,
+              size: 48,
+              color: Colors.white,
+            ),
+          );
+        },
+      ),
     );
   }
 

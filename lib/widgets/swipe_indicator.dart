@@ -89,7 +89,7 @@ class SwipeHints extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.textMuted,
