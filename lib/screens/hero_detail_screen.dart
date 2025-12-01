@@ -43,15 +43,11 @@ class HeroDetailScreen extends StatelessWidget {
                 children: [
                   // Hero image
                   hero.imageUrl != null && hero.imageUrl!.isNotEmpty
-                      ? SizedBox.expand(
-                          child: CachedNetworkImage(
-                            imageUrl: hero.imageUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: 300,
-                            placeholder: (context, url) => _buildPlaceholder(),
-                            errorWidget: (context, url, error) => _buildPlaceholder(),
-                          ),
+                      ? CachedNetworkImage(
+                          imageUrl: hero.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => _buildPlaceholder(),
+                          errorWidget: (context, url, error) => _buildPlaceholder(),
                         )
                       : _buildPlaceholder(),
                   // Gradient overlay

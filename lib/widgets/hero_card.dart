@@ -283,22 +283,18 @@ class _HeroCardState extends State<HeroCard>
       children: [
         // Image or placeholder
         if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty)
-          SizedBox.expand(
-            child: CachedNetworkImage(
-              imageUrl: widget.hero.imageUrl!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[300],
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+          CachedNetworkImage(
+            imageUrl: widget.hero.imageUrl!,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: Colors.grey[300],
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
                 ),
               ),
-              errorWidget: (context, url, error) => _buildPlaceholder(),
             ),
+            errorWidget: (context, url, error) => _buildPlaceholder(),
           )
         else
           _buildPlaceholder(),
@@ -412,15 +408,11 @@ class _HeroCardState extends State<HeroCard>
 
   Widget _buildAvatarImage() {
     if (widget.hero.imageUrl != null && widget.hero.imageUrl!.isNotEmpty) {
-      return SizedBox.expand(
-        child: CachedNetworkImage(
-          imageUrl: widget.hero.imageUrl!,
-          fit: BoxFit.cover,
-          width: 80,
-          height: 80,
-          placeholder: (context, url) => _buildAvatarPlaceholder(),
-          errorWidget: (context, url, error) => _buildAvatarPlaceholder(),
-        ),
+      return CachedNetworkImage(
+        imageUrl: widget.hero.imageUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => _buildAvatarPlaceholder(),
+        errorWidget: (context, url, error) => _buildAvatarPlaceholder(),
       );
     }
     return _buildAvatarPlaceholder();
